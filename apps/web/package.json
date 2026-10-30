@@ -1,0 +1,13 @@
+{
+  "name": "@rideloc/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "echo \"web: Vite ditambahkan di Fase 6\""
+  },
+  "dependencies": {
+    "@rideloc/shared": "workspace:*"
+  }
+}
