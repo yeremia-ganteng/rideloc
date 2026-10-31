@@ -1,13 +1,21 @@
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { GenericContainer, Wait, type StartedTestContainer } from 'testcontainers';
 
-let container: StartedPostgreSqlContainer | undefined;
+let postgres: StartedPostgreSqlContainer | undefined;
+let redis: StartedTestContainer | undefined;
 
 export async function setup(): Promise<void> {
-  container = await new PostgreSqlContainer('postgis/postgis:16-3.4').start();
-  const url = container.getConnectionUri();
+  postgres = await new PostgreSqlContainer('postgis/postgis:16-3.4').start();
+  const url = postgres.getConnectionUri();
   process.env.DATABASE_URL = url; // inherited by test workers
+
+  redis = await new GenericContainer('redis:7-alpine')
+    .withExposedPorts(6379)
+    .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
+    .start();
+  process.env.REDIS_URL = `redis://${redis.getHost()}:${redis.getMappedPort(6379)}`;
 
   // Run the real migrations through the same CLI used in dev/prod.
   execSync('pnpm exec node-pg-migrate up --migrations-dir migrations', {
@@ -18,5 +26,6 @@ export async function setup(): Promise<void> {
 }
 
 export async function teardown(): Promise<void> {
-  await container?.stop();
+  await postgres?.stop();
+  await redis?.stop();
 }

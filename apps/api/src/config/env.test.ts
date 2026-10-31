@@ -17,6 +17,10 @@ describe('loadEnv', () => {
     expect(env.MAX_TRIP_KM).toBe(100);
     expect(env.PRICING).toEqual(DEFAULT_PRICING);
   });
+  it('REDIS_URL punya default untuk dev dan menolak nilai bukan URL', () => {
+    expect(loadEnv(base).REDIS_URL).toBe('redis://127.0.0.1:6379');
+    expect(() => loadEnv({ ...base, REDIS_URL: 'bukan-url' })).toThrow(/REDIS_URL/);
+  });
 
   it('memecah CORS_ORIGINS dan meng-coerce angka', () => {
     const env = loadEnv({ ...base, CORS_ORIGINS: 'https://a.com, https://b.com', PORT: '4000' });

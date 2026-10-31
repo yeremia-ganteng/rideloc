@@ -27,6 +27,7 @@ const EnvSchema = z.object({
   MAX_TRIP_KM: z.coerce.number().min(1).max(500).default(100),
   ESTIMATE_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
   PRICING_JSON: z.string().optional(),
+  REDIS_URL: z.string().url().default('redis://127.0.0.1:6379'),
 });
 
 export type Env = Omit<z.infer<typeof EnvSchema>, 'PRICING_JSON'> & { PRICING: PricingConfig };

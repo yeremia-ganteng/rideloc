@@ -8,12 +8,15 @@ import Fastify, {
   type FastifyInstance,
   type FastifyServerOptions,
 } from 'fastify';
+import type { Redis } from 'ioredis';
 import type { Kysely } from 'kysely';
 import type { Env } from './config/env';
 import type { Database } from './db/types';
 import { AppError } from './lib/errors';
 import { authRoutes } from './modules/auth/auth.routes';
 import { createAuthService } from './modules/auth/auth.service';
+import { driverRoutes } from './modules/drivers/driver.routes';
+import { createPresenceService, type PresenceService } from './modules/drivers/presence.service';
 import { healthRoutes } from './modules/health/health.routes';
 import { estimateRoutes } from './modules/rides/estimate.routes';
 import { createEstimateService } from './modules/rides/estimate.service';
@@ -21,10 +24,18 @@ import { createOsrmClient } from './modules/routing/osrm.client';
 import type { RoutingClient } from './modules/routing/types';
 import { userRoutes } from './modules/users/users.routes';
 import { registerAuthenticate } from './plugins/authenticate';
+import { createRealtime } from './realtime/socket';
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    presence: PresenceService;
+  }
+}
 
 export interface AppDeps {
   env: Env;
   db: Kysely<Database>;
+  redis: Redis;
   /** Override for tests. Defaults to the OSRM client configured by env. */
   routing?: RoutingClient;
 }
@@ -41,6 +52,7 @@ function loggerOptions(env: Env): FastifyServerOptions['logger'] {
 export async function buildApp({
   env,
   db,
+  redis,
   routing: routingOverride,
 }: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: loggerOptions(env), bodyLimit: 100_000 });
@@ -95,10 +107,15 @@ export async function buildApp({
     logger: app.log,
   });
 
-  await app.register(healthRoutes, { db });
+  const presence = createPresenceService({ redis, db, logger: app.log });
+  app.decorate('presence', presence);
+  createRealtime({ app, env, presence });
+
+  await app.register(healthRoutes, { db, redis });
   await app.register(authRoutes, { prefix: '/auth', auth, env });
   await app.register(userRoutes, { auth });
   await app.register(estimateRoutes, { estimate, env });
+  await app.register(driverRoutes, { presence });
 
   return app;
 }
