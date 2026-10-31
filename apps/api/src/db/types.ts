@@ -1,5 +1,7 @@
 import type { Generated } from 'kysely';
-import type { Role, VehicleType } from '@rideloc/shared';
+import type { RideStatus, Role, VehicleType } from '@rideloc/shared';
+
+export type OfferOutcome = 'ACCEPTED' | 'REJECTED' | 'TIMEOUT';
 
 export interface UsersTable {
   id: Generated<string>;
@@ -32,8 +34,45 @@ export interface RefreshTokensTable {
   created_at: Generated<Date>;
 }
 
+export interface RidesTable {
+  id: Generated<string>;
+  rider_id: string;
+  driver_id: Generated<string | null>;
+  status: RideStatus;
+  vehicle_type: VehicleType;
+  // geography columns are written with ST_* expressions and read with ST_X / ST_Y.
+  pickup: string;
+  pickup_address: string | null;
+  dropoff: string;
+  dropoff_address: string | null;
+  distance_m: number;
+  duration_s: number;
+  fare_idr: number;
+  route_polyline: string | null;
+  cancel_reason: Generated<string | null>;
+  requested_at: Generated<Date>;
+  accepted_at: Generated<Date | null>;
+  started_at: Generated<Date | null>;
+  completed_at: Generated<Date | null>;
+  cancelled_at: Generated<Date | null>;
+}
+
+export interface RideOffersTable {
+  id: Generated<string>;
+  ride_id: string;
+  driver_id: string;
+  /** NULL = pending. */
+  outcome: Generated<OfferOutcome | null>;
+  distance_m: number;
+  offered_at: Generated<Date>;
+  expires_at: Date;
+  responded_at: Generated<Date | null>;
+}
+
 export interface Database {
   users: UsersTable;
   drivers: DriversTable;
   refresh_tokens: RefreshTokensTable;
+  rides: RidesTable;
+  ride_offers: RideOffersTable;
 }

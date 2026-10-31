@@ -76,6 +76,21 @@ export function createPresenceService({ redis, db, logger }: PresenceDeps) {
 
     /** TODO Phase 4: refuse to go offline while the driver has an active ride (busy key). */
     async goOffline(driverId: string): Promise<void> {
+      // A driver in the middle of a ride cannot disappear.
+      const active = await sql<{ n: number }>`
+        select count(*)::int as n from rides
+        where driver_id = ${driverId}
+          and status in ('DRIVER_ASSIGNED', 'DRIVER_ARRIVING', 'DRIVER_ARRIVED', 'IN_PROGRESS')`.execute(
+        db,
+      );
+      if ((active.rows[0]?.n ?? 0) > 0) {
+        throw new AppError(
+          409,
+          'DRIVER_HAS_ACTIVE_RIDE',
+          'Finish your current ride before going offline',
+        );
+      }
+
       await db
         .updateTable('drivers')
         .set({ is_online: false })

@@ -66,4 +66,13 @@ describe('loadEnv', () => {
   it('menolak MAX_TRIP_KM di luar rentang', () => {
     expect(() => loadEnv({ ...base, MAX_TRIP_KM: '0' })).toThrow(/MAX_TRIP_KM/);
   });
+
+  it('parameter matching punya default sesuai PRD dan menolak nilai di luar rentang', () => {
+    const env = loadEnv(base);
+    expect(env.MATCH_OFFER_TTL_S).toBe(15);
+    expect(env.MATCH_SEARCH_TIMEOUT_S).toBe(30);
+    expect(env.MATCH_TICK_MS).toBe(1000);
+    expect(() => loadEnv({ ...base, MATCH_OFFER_TTL_S: '0' })).toThrow(/MATCH_OFFER_TTL_S/);
+    expect(() => loadEnv({ ...base, MATCH_TICK_MS: '10' })).toThrow(/MATCH_TICK_MS/);
+  });
 });

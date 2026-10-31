@@ -18,17 +18,23 @@ import { createAuthService } from './modules/auth/auth.service';
 import { driverRoutes } from './modules/drivers/driver.routes';
 import { createPresenceService, type PresenceService } from './modules/drivers/presence.service';
 import { healthRoutes } from './modules/health/health.routes';
+import { createMatchingService, type MatchingService } from './modules/matching/matching.service';
 import { estimateRoutes } from './modules/rides/estimate.routes';
 import { createEstimateService } from './modules/rides/estimate.service';
+import { rideRoutes } from './modules/rides/rides.routes';
+import { createRidesService } from './modules/rides/rides.service';
 import { createOsrmClient } from './modules/routing/osrm.client';
 import type { RoutingClient } from './modules/routing/types';
 import { userRoutes } from './modules/users/users.routes';
 import { registerAuthenticate } from './plugins/authenticate';
+import { createNotifier } from './realtime/notifier';
+import { registerOfferHandlers } from './realtime/offers';
 import { createRealtime } from './realtime/socket';
 
 declare module 'fastify' {
   interface FastifyInstance {
     presence: PresenceService;
+    matching: MatchingService;
   }
 }
 
@@ -109,12 +115,26 @@ export async function buildApp({
 
   const presence = createPresenceService({ redis, db, logger: app.log });
   app.decorate('presence', presence);
-  createRealtime({ app, env, presence });
+
+  const io = createRealtime({ app, env, presence });
+  const matching = createMatchingService({
+    db,
+    redis,
+    notifier: createNotifier(io),
+    logger: app.log,
+    offerTtlS: env.MATCH_OFFER_TTL_S,
+    searchTimeoutS: env.MATCH_SEARCH_TIMEOUT_S,
+  });
+  app.decorate('matching', matching);
+  registerOfferHandlers({ io, matching, logger: app.log });
+
+  const rides = createRidesService({ db, estimate, matching, logger: app.log });
 
   await app.register(healthRoutes, { db, redis });
   await app.register(authRoutes, { prefix: '/auth', auth, env });
   await app.register(userRoutes, { auth });
   await app.register(estimateRoutes, { estimate, env });
+  await app.register(rideRoutes, { rides, env });
   await app.register(driverRoutes, { presence });
 
   return app;

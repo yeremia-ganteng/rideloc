@@ -28,6 +28,10 @@ const EnvSchema = z.object({
   ESTIMATE_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
   PRICING_JSON: z.string().optional(),
   REDIS_URL: z.string().url().default('redis://127.0.0.1:6379'),
+  // --- Fase 4 ---
+  MATCH_OFFER_TTL_S: z.coerce.number().int().min(1).max(120).default(15),
+  MATCH_SEARCH_TIMEOUT_S: z.coerce.number().int().min(0).max(300).default(30),
+  MATCH_TICK_MS: z.coerce.number().int().min(200).max(10_000).default(1000),
 });
 
 export type Env = Omit<z.infer<typeof EnvSchema>, 'PRICING_JSON'> & { PRICING: PricingConfig };
