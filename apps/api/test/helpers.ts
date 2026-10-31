@@ -3,8 +3,12 @@ import { sql } from 'kysely';
 import { buildApp } from '../src/app';
 import { loadEnv } from '../src/config/env';
 import { createDb } from '../src/db/client';
+import type { RoutingClient } from '../src/modules/routing/types';
 
-export async function createTestApp(overrides: Record<string, string> = {}) {
+export async function createTestApp(
+  overrides: Record<string, string> = {},
+  routing?: RoutingClient,
+) {
   const env = loadEnv({
     NODE_ENV: 'test',
     LOG_LEVEL: 'silent',
@@ -12,10 +16,11 @@ export async function createTestApp(overrides: Record<string, string> = {}) {
     JWT_ACCESS_SECRET: 'test-secret-test-secret-test-secret-123456',
     RATE_LIMIT_MAX: '100000',
     AUTH_RATE_LIMIT_MAX: '100000',
+    ESTIMATE_RATE_LIMIT_MAX: '100000',
     ...overrides,
   });
   const db = createDb(env.DATABASE_URL);
-  const app = await buildApp({ env, db });
+  const app = await buildApp({ env, db, ...(routing ? { routing } : {}) });
   await app.ready();
   return {
     app,

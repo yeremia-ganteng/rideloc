@@ -1,3 +1,4 @@
+import { DEFAULT_PRICING } from '@rideloc/shared';
 import { describe, expect, it } from 'vitest';
 import { loadEnv } from './env';
 
@@ -12,6 +13,9 @@ describe('loadEnv', () => {
     expect(env.PORT).toBe(3000);
     expect(env.HOST).toBe('127.0.0.1');
     expect(env.CORS_ORIGINS).toEqual(['http://localhost:5173']);
+    expect(env.OSRM_TIMEOUT_MS).toBe(2000);
+    expect(env.MAX_TRIP_KM).toBe(100);
+    expect(env.PRICING).toEqual(DEFAULT_PRICING);
   });
 
   it('memecah CORS_ORIGINS dan meng-coerce angka', () => {
@@ -31,5 +35,31 @@ describe('loadEnv', () => {
 
   it('menolak DATABASE_URL yang hilang', () => {
     expect(() => loadEnv({ JWT_ACCESS_SECRET: 'x'.repeat(32) })).toThrow(/DATABASE_URL/);
+  });
+
+  it('PRICING_JSON valid menimpa default', () => {
+    const custom = {
+      ...DEFAULT_PRICING,
+      MOTORCYCLE: { base: 1000, perKm: 3000, perMinute: 100, minimum: 7000 },
+    };
+    const env = loadEnv({ ...base, PRICING_JSON: JSON.stringify(custom) });
+    expect(env.PRICING.MOTORCYCLE.perKm).toBe(3000);
+  });
+
+  it('PRICING_JSON rusak atau tidak valid ditolak dengan pesan yang menyebut nama variabel', () => {
+    expect(() => loadEnv({ ...base, PRICING_JSON: '{oops' })).toThrow(/PRICING_JSON/);
+    expect(() =>
+      loadEnv({
+        ...base,
+        PRICING_JSON: JSON.stringify({
+          ...DEFAULT_PRICING,
+          CAR: { ...DEFAULT_PRICING.CAR, base: 1.5 },
+        }),
+      }),
+    ).toThrow(/PRICING_JSON\.CAR\.base/);
+  });
+
+  it('menolak MAX_TRIP_KM di luar rentang', () => {
+    expect(() => loadEnv({ ...base, MAX_TRIP_KM: '0' })).toThrow(/MAX_TRIP_KM/);
   });
 });

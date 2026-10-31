@@ -15,12 +15,18 @@ import { AppError } from './lib/errors';
 import { authRoutes } from './modules/auth/auth.routes';
 import { createAuthService } from './modules/auth/auth.service';
 import { healthRoutes } from './modules/health/health.routes';
+import { estimateRoutes } from './modules/rides/estimate.routes';
+import { createEstimateService } from './modules/rides/estimate.service';
+import { createOsrmClient } from './modules/routing/osrm.client';
+import type { RoutingClient } from './modules/routing/types';
 import { userRoutes } from './modules/users/users.routes';
 import { registerAuthenticate } from './plugins/authenticate';
 
 export interface AppDeps {
   env: Env;
   db: Kysely<Database>;
+  /** Override for tests. Defaults to the OSRM client configured by env. */
+  routing?: RoutingClient;
 }
 
 function loggerOptions(env: Env): FastifyServerOptions['logger'] {
@@ -32,7 +38,11 @@ function loggerOptions(env: Env): FastifyServerOptions['logger'] {
   };
 }
 
-export async function buildApp({ env, db }: AppDeps): Promise<FastifyInstance> {
+export async function buildApp({
+  env,
+  db,
+  routing: routingOverride,
+}: AppDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: loggerOptions(env), bodyLimit: 100_000 });
 
   await app.register(helmet);
@@ -75,9 +85,20 @@ export async function buildApp({ env, db }: AppDeps): Promise<FastifyInstance> {
 
   const auth = createAuthService({ db, env, signAccessToken: (payload) => app.jwt.sign(payload) });
 
+  const routing =
+    routingOverride ??
+    createOsrmClient({ baseUrl: env.OSRM_BASE_URL, timeoutMs: env.OSRM_TIMEOUT_MS });
+  const estimate = createEstimateService({
+    routing,
+    pricing: env.PRICING,
+    maxTripKm: env.MAX_TRIP_KM,
+    logger: app.log,
+  });
+
   await app.register(healthRoutes, { db });
   await app.register(authRoutes, { prefix: '/auth', auth, env });
   await app.register(userRoutes, { auth });
+  await app.register(estimateRoutes, { estimate, env });
 
   return app;
 }
