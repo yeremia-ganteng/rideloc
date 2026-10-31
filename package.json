@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.16.1",
   "engines": {
     "node": ">=22"
   },
@@ -14,7 +15,10 @@
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:int": "pnpm --filter @rideloc/api test:int",
     "build": "pnpm -r build",
+    "db:migrate": "pnpm --filter @rideloc/api migrate up",
+    "db:rollback": "pnpm --filter @rideloc/api migrate down",
     "infra:up": "docker compose --env-file .env -f infra/docker-compose.yml up -d --wait",
     "infra:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
     "infra:reset": "docker compose --env-file .env -f infra/docker-compose.yml down -v",
@@ -29,7 +33,6 @@
       "prettier --write"
     ]
   },
-  "packageManager": "pnpm@12.16.1",
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",

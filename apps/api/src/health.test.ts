@@ -6,6 +6,10 @@ describe('buildHealth', () => {
     expect(buildHealth(12.5)).toEqual({ status: 'ok', uptimeS: 12.5 });
   });
 
+  it('degraded jika database mati', () => {
+    expect(buildHealth(1, false).status).toBe('degraded');
+  });
+
   it('melempar error jika uptime negatif', () => {
     expect(() => buildHealth(-1)).toThrow();
   });

@@ -1,6 +1,9 @@
 import { HealthResponseSchema, type HealthResponse } from '@rideloc/shared';
 
-/** Membangun payload health dan memvalidasinya lewat skema bersama. */
-export function buildHealth(uptimeS: number = process.uptime()): HealthResponse {
-  return HealthResponseSchema.parse({ status: 'ok', uptimeS });
+/** Builds the health payload and validates it against the shared schema. */
+export function buildHealth(
+  uptimeS: number = process.uptime(),
+  dbUp: boolean = true,
+): HealthResponse {
+  return HealthResponseSchema.parse({ status: dbUp ? 'ok' : 'degraded', uptimeS });
 }

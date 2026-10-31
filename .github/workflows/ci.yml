@@ -37,6 +37,9 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Integration tests (Testcontainers)
+        run: pnpm test:int
+
       - name: Build
         run: pnpm build
 

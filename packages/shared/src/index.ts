@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export * from './auth';
+
 export const APP_NAME = 'RideLoc' as const;
 
 export const HealthResponseSchema = z.object({
